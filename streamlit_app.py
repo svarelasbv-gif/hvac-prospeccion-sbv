@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 from pathlib import Path
 import urllib.parse
@@ -119,7 +120,7 @@ pais = st.sidebar.text_input(
 
 st.sidebar.markdown("---")
 st.sidebar.write("1) Ajusta ciudad, estado y palabra clave.")
-st.sidebar.write("2) Clic en **Generar enlaces**.")
+st.sidebar.write("2) Visualiza Google / Maps dentro del app (sin salir).")
 st.sidebar.write("3) Captura prospectos abajo.")
 
 # ---------------------------
@@ -133,34 +134,31 @@ st.write(
 )
 
 # ---------------------------
-# Sección: Enlaces de búsqueda
+# Sección: Vista embebida + Captura (sin salir de la ventana)
 # ---------------------------
 
-st.subheader("🔍 Enlaces de búsqueda automática")
+st.subheader("🔍 Búsqueda embebida (sin salir de la app)")
 
 query = construir_query(palabra_clave, ciudad, estado, pais)
+google_url = url_google_search(query)
+maps_url = url_google_maps(query)
 
-col_b1, col_b2, col_b3 = st.columns(3)
-with col_b1:
-    if st.button("Generar enlaces de búsqueda"):
-        st.session_state["ultima_query"] = query
+tabs = st.tabs(["🌐 Google", "📍 Google Maps", "💼 LinkedIn (Link)"])
 
-ultima_query = st.session_state.get("ultima_query", "")
+with tabs[0]:
+    components.iframe(google_url, height=520, scrolling=True)
 
-if ultima_query:
-    st.info(f"Consulta actual: **{ultima_query}**")
+with tabs[1]:
+    components.iframe(maps_url, height=520, scrolling=True)
 
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.markdown(f"[🔎 Google]({url_google_search(ultima_query)})", unsafe_allow_html=True)
-    with col2:
-        st.markdown(f"[📍 Google Maps]({url_google_maps(ultima_query)})", unsafe_allow_html=True)
-    with col3:
-        st.markdown(f"[💼 LinkedIn Empresas]({url_linkedin_companies(ultima_query)})", unsafe_allow_html=True)
+with tabs[2]:
+    st.warning("LinkedIn normalmente bloquea vista embebida. Usa el link para abrir en otra pestaña.")
+    st.markdown(f"[Abrir LinkedIn empresas]({url_linkedin_companies(query)})", unsafe_allow_html=True)
 
-    st.caption("Abre los enlaces, identifica empresas HVAC y regístralas abajo.")
-else:
-    st.warning("Configura los datos y presiona **Generar enlaces de búsqueda**.")
+st.caption(
+    "Tip: copia nombre/telefono/sitio web desde Google o Maps y pégalo en el formulario. "
+    "Luego presiona 'Agregar prospecto'."
+)
 
 st.markdown("---")
 
@@ -217,7 +215,7 @@ with st.form("form_prospecto"):
     col_left, col_right = st.columns(2)
 
     with col_left:
-        nombre_empresa = st.text_input("Nombre de la empresa")
+        nombre_empresa = st.text_input("Nombre de la empresa *")
         contacto = st.text_input("Contacto")
         cargo = st.text_input("Cargo")
         email = st.text_input("Email")
@@ -236,7 +234,7 @@ with st.form("form_prospecto"):
     submitted = st.form_submit_button("➕ Agregar prospecto")
 
     if submitted:
-        if not nombre_empresa:
+        if not nombre_empresa.strip():
             st.error("El campo 'Nombre de la empresa' es obligatorio.")
         else:
             nueva_fila = {
@@ -250,7 +248,7 @@ with st.form("form_prospecto"):
                 "Línea producto objetivo": linea_producto,
                 "Marca objetivo": marca_objetivo,
                 "Potencial (1-5)": potencial,
-                "Nombre empresa": nombre_empresa,
+                "Nombre empresa": nombre_empresa.strip(),
                 "Contacto": contacto,
                 "Cargo": cargo,
                 "Email": email,
@@ -262,12 +260,13 @@ with st.form("form_prospecto"):
                 "Responsable SBV": responsable_sbv,
                 "Notas": notas,
             }
+
             st.session_state.df = pd.concat(
                 [st.session_state.df, pd.DataFrame([nueva_fila])],
                 ignore_index=True
             )
             guardar_datos(st.session_state.df)
-            st.success(f"Prospecto '{nombre_empresa}' agregado correctamente.")
+            st.success(f"Prospecto '{nombre_empresa.strip()}' agregado correctamente.")
 
 # ---------------------------
 # Tabla de prospectos
