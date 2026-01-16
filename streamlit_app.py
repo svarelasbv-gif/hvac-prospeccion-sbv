@@ -117,4 +117,5 @@ if "prefill" not in st.session_state:
 
 st.sidebar.title("🎯 Parámetros de búsqueda")
 
-palabra_clave = st.sidebar.text_input("Palabra clave", "contratista H
+palabra_clave = st.sidebar.text_input("Palabra clave", "contratista HVAC")
+
